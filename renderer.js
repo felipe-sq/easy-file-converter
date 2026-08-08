@@ -193,7 +193,7 @@ document.addEventListener("DOMContentLoaded", () => {
     cancelQueueButton.addEventListener("click", () => {
       window.electron.cancelCombineQueue();
       if (combineQueueStatusDiv) {
-        combineQueueStatusDiv.textContent = "Combine queue cancelled.";
+        combineQueueStatusDiv.textContent = "Combine queue canceled.";
       }
       cancelQueueButton.disabled = true;
     });
@@ -203,7 +203,7 @@ document.addEventListener("DOMContentLoaded", () => {
     cancelSingleButton.addEventListener("click", () => {
       window.electron.cancelSingleConversion();
       cancelSingleButton.disabled = true;
-      statusDiv.textContent = "Status: Single conversion cancelled.";
+      statusDiv.textContent = "Status: Single conversion canceled.";
     });
   }
 
@@ -224,17 +224,17 @@ document.addEventListener("DOMContentLoaded", () => {
     clearButton.disabled = false;
   });
 
-  window.electron.onConversionCancelled((event) => {
-    console.log("Conversion cancelled");
+  window.electron.onConversionCanceled(() => {
+    console.log("Conversion canceled");
     statusDiv.className = "status-text status-idle";
-    statusDiv.textContent = "Status: Conversion cancelled by user.";
+    statusDiv.textContent = "Status: Conversion canceled by user.";
     progressBar.style.display = "none";
     totalFilesDiv.style.display = "none";
     filesConvertedDiv.style.display = "none";
     clearButton.disabled = false;
   });
 
-  window.electron.onConversionSuccessful((event) => {
+  window.electron.onConversionSuccessful(() => {
     // If this is a combine operation, show the styled combine success message
     if (
       combineSuccessMessage &&
@@ -348,8 +348,8 @@ document.addEventListener("DOMContentLoaded", () => {
     combineQueueStatusDiv.textContent = `Combine running: ${data.outputName} — ${data.queueRemaining} job(s) remaining`;
   });
 
-  if (window.electron.onCombineQueueCancelled) {
-    window.electron.onCombineQueueCancelled((event) => {
+  if (window.electron.onCombineQueueCanceled) {
+    window.electron.onCombineQueueCanceled(() => {
       if (!combineQueueStatusDiv) return;
       combineQueueStatusDiv.textContent = "";
       combineQueueStatusDiv.style.display = "none";

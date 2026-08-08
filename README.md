@@ -1,10 +1,12 @@
 # Easy File Converter
 
+[![CI](https://github.com/felipe-sq/easy-file-converter/actions/workflows/ci.yml/badge.svg)](https://github.com/felipe-sq/easy-file-converter/actions/workflows/ci.yml)
+
 A macOS desktop app for converting and merging video files, built with Electron and FFmpeg.
 
 I built this to solve a specific problem: getting large `.mov` recordings off a Mac and onto an iPad without filling up the device. The default mode re-encodes to H.265 at roughly half the original file size; a high-quality H.264 mode is a checkbox away when compatibility matters more than storage.
 
-<!-- Add a screenshot here once captured: ![Easy File Converter](docs/screenshot.png) -->
+![Easy File Converter](docs/screenshot.png)
 
 ## Features
 
@@ -51,6 +53,18 @@ npm run dev     # opens with DevTools
 npm start       # production mode
 ```
 
+If you launch from a VS Code integrated terminal, `unset ELECTRON_RUN_AS_NODE` first — VS Code sets it, and Electron will otherwise boot as plain Node and fail with `Cannot read properties of undefined (reading 'on')`.
+
+## Development checks
+
+```bash
+npm run format:check   # Prettier
+npm run lint           # ESLint
+npm test               # smoke tests
+```
+
+All three run in CI on every push and pull request.
+
 ## Building a macOS app
 
 ```bash
@@ -76,13 +90,13 @@ For distribution outside your own machine, the app would also need to be code-si
 
 **Combine strategy:** if every input is already MP4/H.264/AAC and no scaling is needed, files are concatenated with a straight stream copy. Otherwise each input is transcoded to an intermediate MPEG-TS segment in the OS temp directory, concatenated, and the temp directory is removed on success or failure.
 
-**Settings:** user preferences (output folder, remembered directories, quality mode, hardware acceleration) persist to `~/.mov2mp4_settings.json`.
+**Settings:** user preferences (output folder, remembered directories, quality mode, hardware acceleration) persist to `~/.easy-file-converter-settings.json`. Earlier versions used `~/.mov2mp4_settings.json`; if that file exists and the current one doesn't, it's copied over once at startup and the original is left untouched.
 
 ## Known limitations
 
 - Apple Silicon only. There's no Intel or universal build, and no Windows/Linux support — the hardware acceleration path is VideoToolbox-specific.
 - Homebrew's FFmpeg is dynamically linked against libraries in `/opt/homebrew/Cellar/`, so a packaged app built with those binaries won't run on a Mac that doesn't have the matching FFmpeg installed. A static FFmpeg build would be needed for true standalone distribution.
-- No automated test suite; conversion paths were verified manually.
+- The test suite is smoke-level only. It checks that every source file parses and that the main process, preload bridge, and renderer agree on every IPC channel and exposed method — the wiring that breaks silently. It does **not** exercise transcoding; the conversion, combine, remux, and hardware-fallback paths were verified manually against real footage.
 
 ## License
 

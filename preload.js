@@ -25,8 +25,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("conversion-total-files", callback),
   onConversionFilesConverted: (callback) =>
     ipcRenderer.on("conversion-files-converted", callback),
-  onConversionCancelled: (callback) =>
-    ipcRenderer.on("conversion-cancelled", callback),
+  onConversionCanceled: (callback) =>
+    ipcRenderer.on("conversion-canceled", callback),
   onCombineQueued: (callback) => ipcRenderer.on("combine-queued", callback),
   onCombineQueueUpdate: (callback) =>
     ipcRenderer.on("combine-queue-update", callback),
@@ -34,8 +34,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("combine-job-started", callback),
   onCombineSuccessful: (callback) =>
     ipcRenderer.on("combine-successful", callback),
-  onCombineQueueCancelled: (callback) =>
-    ipcRenderer.on("combine-queue-cancelled", callback),
+  onCombineQueueCanceled: (callback) =>
+    ipcRenderer.on("combine-queue-canceled", callback),
   cancelCombineQueue: () => ipcRenderer.send("cancel-combine-queue"),
   cancelSingleConversion: () => ipcRenderer.send("cancel-single-conversion"),
   startCombineQueue: () => ipcRenderer.send("start-combine-queue"),

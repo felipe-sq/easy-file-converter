@@ -3,8 +3,32 @@ const path = require("path");
 const converter = require("./converter");
 const os = require("os");
 const fs = require("fs");
-const SETTINGS_PATH = path.join(os.homedir(), ".mov2mp4_settings.json");
+const SETTINGS_PATH = path.join(
+  os.homedir(),
+  ".easy-file-converter-settings.json",
+);
+// Previous name, from when the app was called mov2mp4. Read once at startup so
+// existing users keep their saved folders and preferences.
+const LEGACY_SETTINGS_PATH = path.join(os.homedir(), ".mov2mp4_settings.json");
 let mainWindow;
+
+// Copy the legacy settings file to the current path if the user has one and has
+// not yet been migrated. The old file is deliberately left in place: it costs
+// nothing and makes downgrading harmless.
+function migrateLegacySettings() {
+  try {
+    if (fs.existsSync(SETTINGS_PATH)) return;
+    if (!fs.existsSync(LEGACY_SETTINGS_PATH)) return;
+    // Parse before writing so a corrupt legacy file fails here rather than
+    // producing an unreadable settings file under the new name.
+    const data = JSON.parse(fs.readFileSync(LEGACY_SETTINGS_PATH, "utf8"));
+    fs.writeFileSync(SETTINGS_PATH, JSON.stringify(data));
+  } catch {
+    // A failed migration is not fatal — the app falls back to defaults.
+  }
+}
+
+migrateLegacySettings();
 
 // Helper to generate a unique output file name by appending (1), (2), etc. if needed
 function getUniqueOutputFilePath(basePath, ext) {
@@ -24,7 +48,7 @@ let isProcessingCombineQueue = false;
 let lastProgressTime = 0;
 const PROGRESS_THROTTLE_MS = 500; // Update every 500ms max
 let currentSingleConversionProcess = null;
-let isSingleConversionCancelled = false;
+let isSingleConversionCanceled = false;
 
 function sendThrottledProgress(data) {
   const now = Date.now();
@@ -94,7 +118,7 @@ function cancelCombineQueue() {
   combineQueue.length = 0;
   sendCombineQueueUpdate();
   if (mainWindow) {
-    mainWindow.webContents.send("combine-queue-cancelled");
+    mainWindow.webContents.send("combine-queue-canceled");
   }
 }
 
@@ -279,21 +303,21 @@ ipcMain.on("select-mov-files", async (event, options) => {
     const concurrency = 1; // sequential single-file conversion queue
 
     // track cancellation state
-    isSingleConversionCancelled = false;
+    isSingleConversionCanceled = false;
     currentSingleConversionProcess = null;
 
     // Send total number of files to renderer
     mainWindow.webContents.send("conversion-total-files", filePaths.length);
 
     function next() {
-      if (isSingleConversionCancelled) {
+      if (isSingleConversionCanceled) {
         // Stop starting new conversions after cancellation
         currentSingleConversionProcess = null;
         return;
       }
 
       while (active < concurrency && index < filePaths.length) {
-        if (isSingleConversionCancelled) {
+        if (isSingleConversionCanceled) {
           currentSingleConversionProcess = null;
           break;
         }
@@ -319,13 +343,13 @@ ipcMain.on("select-mov-files", async (event, options) => {
           inputFilePath,
           outputFilePath,
           (err, progress) => {
-            if (isSingleConversionCancelled) {
+            if (isSingleConversionCanceled) {
               // user requested cancellation, stop here
               currentSingleConversionProcess = null;
-              mainWindow.webContents.send("conversion-cancelled");
+              mainWindow.webContents.send("conversion-canceled");
               active = 0;
               index = filePaths.length;
-              isSingleConversionCancelled = false;
+              isSingleConversionCanceled = false;
               return;
             }
 
@@ -442,7 +466,7 @@ ipcMain.on("cancel-combine-queue", () => {
 });
 
 ipcMain.on("cancel-single-conversion", () => {
-  isSingleConversionCancelled = true;
+  isSingleConversionCanceled = true;
   if (
     currentSingleConversionProcess &&
     typeof currentSingleConversionProcess.kill === "function"
