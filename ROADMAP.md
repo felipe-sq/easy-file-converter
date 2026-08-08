@@ -185,6 +185,30 @@ not a flag, and the tool exists to move video onto an iPad from a Mac.
 
 ## Smaller things
 
+Known edges, recorded rather than fixed. None affect the paths this tool is
+used on day to day.
+
+- **A combine job transcodes every input at once.** `startCombine` in
+  `converter.js` maps over the inputs and calls `.run()` synchronously inside
+  each promise, so combining ten files spawns ten concurrent FFmpeg encodes
+  before `Promise.all` waits on any of them. This is an asymmetry rather than an
+  outright bug: single-file conversion is deliberately sequential
+  (`const concurrency = 1` in `main.js`), and the combine _job_ queue exists so
+  batches don't all start at once — but within a single job the load is
+  unbounded. Fine for a few clips and genuinely faster; it would thrash CPU and
+  disk on twenty large ones. The fix is to bound it to match single-file mode.
+
+- **Callbacks outlive a failed combine.** When one temp-file encode rejects,
+  `Promise.all` rejects and `finalizeError` deletes the temp directory and
+  reports the error — but the sibling FFmpeg processes are never killed. They
+  keep emitting progress into the same callback after the main process has moved
+  on to the next queued job, so stale progress can bleed into the new job's
+  display, and the orphans keep writing into a directory that no longer exists.
+  The fix is to track the spawned commands and kill them in `finalizeError`.
+  _Identified by reading the control flow, not yet reproduced_ — worth
+  confirming how fluent-ffmpeg behaves on a deleted output path before changing
+  anything.
+
 - Progress comes from fluent-ffmpeg's `info.percent` and is throttled to 500 ms
   in the main process, so a short conversion can finish having shown few or no
   intermediate updates.
