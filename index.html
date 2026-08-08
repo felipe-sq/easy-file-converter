@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Video Converter</title>
+    <link rel="stylesheet" href="styles.css" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:"
+    />
+  </head>
+  <body>
+    <div class="app-title-box">
+      <h1>Easy File Converter</h1>
+      <button id="selectOutputDir">Select Output Folder</button>
+      <div id="outputDirDisplay" class="info-text"></div>
+    </div>
+    <div class="quality-mode-control">
+      <label>
+        <input type="checkbox" id="highQualityMode" />
+        High Quality Mode (larger files, better quality)
+        <span class="info-icon"
+          >ⓘ
+          <span class="tooltip-text">
+            <strong>High Quality:</strong> H.264 codec, wide device
+            compatibility, larger files.<br /><br />
+            <strong>Compressed:</strong> H.265 codec, ~50% smaller files, ideal
+            for iPad storage.
+          </span>
+        </span>
+      </label>
+      <p class="quality-info" id="qualityInfo">
+        Compressed Mode: H.265 codec for iPad storage optimization
+      </p>
+      <label class="hw-accel-label" id="hwAccelLabel">
+        <input type="checkbox" id="hardwareAccelMode" />
+        Hardware Acceleration (GPU encoding, macOS only)
+        <span class="info-icon"
+          >ⓘ
+          <span class="tooltip-text">
+            Uses your Mac's GPU (VideoToolbox) to speed up encoding. Only
+            applies in High Quality mode — compressed mode always uses CPU to
+            preserve small file sizes. Falls back to CPU automatically if the
+            GPU encoder is unavailable.
+          </span>
+        </span>
+      </label>
+    </div>
+
+    <div class="conversion-buttons-row">
+      <button id="selectMovFile">Single File Conversion</button>
+      <button id="combineMovFiles">Combine Files into One</button>
+    </div>
+    <div id="status" class="status-text status-idle">Status: Idle</div>
+    <br />
+    <progress
+      id="progressBar"
+      value="0"
+      max="100"
+      style="width: 100%; display: none; margin: 10px 0"
+    ></progress>
+    <div id="totalFiles" class="info-text"></div>
+    <div id="filesConverted" class="info-text"></div>
+    <div id="combineQueueStatus" class="info-text"></div>
+    <div id="conversionCompleteMessage">✅ Success! Files converted.</div>
+    <div id="combineSuccessMessage" style="display: none">
+      ✅ Success! Combo jobs completed.
+    </div>
+
+    <!-- <br /><br /> -->
+    <div>
+      <button id="startQueueButton" disabled>Start Queue</button>
+      <button id="cancelQueueButton" disabled>Cancel Queue</button>
+      <button id="cancelSingleButton" disabled>
+        Cancel Current Conversion
+      </button>
+      <br />
+      <button id="clearButton" disabled>Clear</button>
+      <button id="quitButton">Quit</button>
+    </div>
+
+    <script src="renderer.js"></script>
+  </body>
+</html>

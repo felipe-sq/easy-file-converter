@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# FFmpeg binaries — see README for setup
+bin/
+
+# Build output
+Easy-File-Converter-darwin-*/
+out/
+dist/
+
+# Scratch directories used at runtime
+/temp/
+**/temp/
+uploads/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor and OS files
+.DS_Store
+**/.DS_Store
+.vscode/
+.idea/
