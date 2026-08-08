@@ -9,7 +9,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
-    "test": "node --test \"test/**/*.test.js\"",
+    "test": "node --test test/*.test.js",
     "package-mac": "electron-packager . Easy-File-Converter --platform=darwin --arch=arm64 --asar.unpackDir=bin --overwrite"
   },
   "keywords": [
