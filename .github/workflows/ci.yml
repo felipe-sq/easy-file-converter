@@ -6,9 +6,14 @@ on:
   pull_request:
     branches: [main]
 
+# Electron's postinstall downloads a ~100MB binary that CI never launches; the
+# checks here are static analysis and source parsing only.
+env:
+  ELECTRON_SKIP_BINARY_DOWNLOAD: 1
+
 jobs:
-  check:
-    name: Format, lint, and smoke test
+  format-and-lint:
+    name: Format and lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -18,18 +23,36 @@ jobs:
           node-version: 22
           cache: npm
 
-      # Electron's postinstall downloads a ~100MB binary that CI never launches;
-      # the checks here are static analysis and source parsing only.
       - name: Install dependencies
         run: npm ci
-        env:
-          ELECTRON_SKIP_BINARY_DOWNLOAD: 1
 
       - name: Check formatting
         run: npm run format:check
 
       - name: Lint
         run: npm run lint
+
+  test:
+    name: Smoke test (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      # Report every version's result, so one failure doesn't mask the others.
+      fail-fast: false
+      matrix:
+        # The supported range claimed in the README. Kept as a matrix because a
+        # Node-version difference has already broken this build once: `node
+        # --test` handles its arguments differently across releases.
+        node-version: [20, 22, 24]
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Smoke test
         run: npm test

@@ -20,6 +20,9 @@
     "hevc",
     "macos"
   ],
+  "engines": {
+    "node": ">=20"
+  },
   "author": "Felipe Slaughter-Quintero",
   "license": "MIT",
   "repository": {

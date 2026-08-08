@@ -25,7 +25,7 @@ I built this to solve a specific problem: getting large `.mov` recordings off a 
 ## Requirements
 
 - macOS on Apple Silicon (`arm64`)
-- Node.js 18+
+- Node.js 20+ — CI tests 20, 22, and 24
 - FFmpeg and FFprobe
 
 ## Setup
@@ -63,7 +63,7 @@ npm run lint           # ESLint
 npm test               # smoke tests
 ```
 
-All three run in CI on every push and pull request.
+All three run in CI on every push and pull request. Formatting and linting run once; the smoke tests run against Node 20, 22, and 24, since `node --test` has changed how it handles its arguments across releases.
 
 ## Building a macOS app
 
