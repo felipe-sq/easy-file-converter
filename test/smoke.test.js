@@ -50,10 +50,12 @@ test("converter exposes its two entry points", () => {
 });
 
 test("main-to-renderer channels are all bridged by preload", () => {
-  const sent = matchAll(mainSrc, /webContents\.send\(\s*"([\w-]+)"/g);
+  // Main sends through the sendToRenderer() guard rather than calling
+  // webContents.send() directly; see the guarded-sender test below.
+  const sent = matchAll(mainSrc, /sendToRenderer\(\s*"([\w-]+)"/g);
   const bridged = matchAll(preloadSrc, /ipcRenderer\.on\(\s*"([\w-]+)"/g);
 
-  assert.ok(sent.size > 0, "found no webContents.send calls — regex is stale");
+  assert.ok(sent.size > 0, "found no sendToRenderer calls — regex is stale");
   for (const channel of sent) {
     assert.ok(
       bridged.has(channel),
@@ -91,6 +93,33 @@ test("every window.electron method the renderer uses is exposed by preload", () 
       `renderer.js calls window.electron.${method}(), which preload.js does not expose`,
     );
   }
+});
+
+test("all renderer messaging goes through the guarded sender", () => {
+  // The window can be closed while FFmpeg is still encoding — on macOS the app
+  // survives that — so a raw mainWindow.webContents.send() throws on null.
+  // sendToRenderer() is the only place allowed to touch webContents directly.
+  const sends = mainSrc.match(/webContents\.send\(/g) ?? [];
+  assert.equal(
+    sends.length,
+    1,
+    `main.js should call webContents.send() exactly once, inside sendToRenderer(); found ${sends.length}`,
+  );
+
+  const helper = mainSrc.match(
+    /function sendToRenderer\([^)]*\)\s*\{[\s\S]*?\n\}/,
+  );
+  assert.ok(helper, "main.js no longer defines sendToRenderer()");
+  assert.match(
+    helper[0],
+    /webContents\.send\(/,
+    "the single webContents.send() call is not the one inside sendToRenderer()",
+  );
+  assert.match(
+    helper[0],
+    /if \(!mainWindow \|\| mainWindow\.isDestroyed\(\)\) return;/,
+    "sendToRenderer() lost its null/destroyed guard",
+  );
 });
 
 test("US spelling is used for canceled", () => {

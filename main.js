@@ -50,17 +50,26 @@ const PROGRESS_THROTTLE_MS = 500; // Update every 500ms max
 let currentSingleConversionProcess = null;
 let isSingleConversionCanceled = false;
 
+// The window can go away while work is still in flight: closing it sets
+// mainWindow to null, and on macOS the app keeps running rather than quitting,
+// so FFmpeg carries on encoding and its callbacks keep firing. Every message to
+// the renderer goes through here so a closed window is a no-op instead of a
+// TypeError in the main process.
+function sendToRenderer(channel, ...args) {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.webContents.send(channel, ...args);
+}
+
 function sendThrottledProgress(data) {
   const now = Date.now();
   if (now - lastProgressTime >= PROGRESS_THROTTLE_MS) {
-    mainWindow.webContents.send("conversion-progress", data);
+    sendToRenderer("conversion-progress", data);
     lastProgressTime = now;
   }
 }
 
 function sendCombineQueueUpdate() {
-  if (!mainWindow) return;
-  mainWindow.webContents.send("combine-queue-update", {
+  sendToRenderer("combine-queue-update", {
     queued: combineQueue.length,
     processing: isProcessingCombineQueue,
   });
@@ -79,7 +88,7 @@ function processNextCombineJob() {
   sendCombineQueueUpdate();
 
   const outputName = path.basename(job.outputFilePath);
-  mainWindow.webContents.send("combine-job-started", {
+  sendToRenderer("combine-job-started", {
     outputName,
     queueRemaining: combineQueue.length,
   });
@@ -89,7 +98,7 @@ function processNextCombineJob() {
     job.outputFilePath,
     (err, progress) => {
       if (err) {
-        mainWindow.webContents.send("conversion-failed", err.message);
+        sendToRenderer("conversion-failed", err.message);
         isProcessingCombineQueue = false;
         processNextCombineJob();
         return;
@@ -102,7 +111,7 @@ function processNextCombineJob() {
       });
 
       if (progress === 100) {
-        mainWindow.webContents.send("combine-successful", {
+        sendToRenderer("combine-successful", {
           outputFilePath: job.outputFilePath,
           queueRemaining: combineQueue.length,
         });
@@ -117,9 +126,7 @@ function processNextCombineJob() {
 function cancelCombineQueue() {
   combineQueue.length = 0;
   sendCombineQueueUpdate();
-  if (mainWindow) {
-    mainWindow.webContents.send("combine-queue-canceled");
-  }
+  sendToRenderer("combine-queue-canceled");
 }
 
 function getSavedDir(type) {
@@ -253,7 +260,7 @@ ipcMain.handle("select-output-dir", async () => {
   });
   if (result.canceled || !result.filePaths[0]) return getSavedOutputDir();
   saveOutputDir(result.filePaths[0]);
-  mainWindow.webContents.send("output-dir-changed", result.filePaths[0]);
+  sendToRenderer("output-dir-changed", result.filePaths[0]);
   return result.filePaths[0];
 });
 
@@ -307,7 +314,7 @@ ipcMain.on("select-mov-files", async (event, options) => {
     currentSingleConversionProcess = null;
 
     // Send total number of files to renderer
-    mainWindow.webContents.send("conversion-total-files", filePaths.length);
+    sendToRenderer("conversion-total-files", filePaths.length);
 
     function next() {
       if (isSingleConversionCanceled) {
@@ -333,7 +340,7 @@ ipcMain.on("select-mov-files", async (event, options) => {
         let fileDone = false;
 
         // Send current file info
-        mainWindow.webContents.send("conversion-file-started", {
+        sendToRenderer("conversion-file-started", {
           currentFile: inputFileName,
           fileNumber: index,
           totalFiles: filePaths.length,
@@ -346,7 +353,7 @@ ipcMain.on("select-mov-files", async (event, options) => {
             if (isSingleConversionCanceled) {
               // user requested cancellation, stop here
               currentSingleConversionProcess = null;
-              mainWindow.webContents.send("conversion-canceled");
+              sendToRenderer("conversion-canceled");
               active = 0;
               index = filePaths.length;
               isSingleConversionCanceled = false;
@@ -355,7 +362,7 @@ ipcMain.on("select-mov-files", async (event, options) => {
 
             if (err) {
               currentSingleConversionProcess = null;
-              mainWindow.webContents.send("conversion-failed", err.message);
+              sendToRenderer("conversion-failed", err.message);
               active = Math.max(0, active - 1);
               next();
               return;
@@ -376,12 +383,9 @@ ipcMain.on("select-mov-files", async (event, options) => {
             if (progress === 100 && !fileDone) {
               fileDone = true;
               filesConverted++;
-              mainWindow.webContents.send(
-                "conversion-files-converted",
-                filesConverted,
-              );
+              sendToRenderer("conversion-files-converted", filesConverted);
               if (filesConverted === filePaths.length) {
-                mainWindow.webContents.send("conversion-successful");
+                sendToRenderer("conversion-successful");
               }
               currentSingleConversionProcess = null;
               active--;
@@ -450,13 +454,11 @@ ipcMain.on("combine-mov-files", async (event, options) => {
 
   // Enqueue the job and start processing if needed
   combineQueue.push({ filePaths, outputFilePath, options: conversionOptions });
-  if (mainWindow) {
-    mainWindow.webContents.send("combine-queued", {
-      outputFilePath,
-      outputName: path.basename(outputFilePath),
-      queueLength: combineQueue.length,
-    });
-  }
+  sendToRenderer("combine-queued", {
+    outputFilePath,
+    outputName: path.basename(outputFilePath),
+    queueLength: combineQueue.length,
+  });
 
   sendCombineQueueUpdate();
 });
