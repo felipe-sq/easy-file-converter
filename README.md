@@ -110,6 +110,8 @@ For distribution to people who don't have Homebrew, the app would need a statica
 
 ## Known limitations
 
+Planned work and the open questions blocking it are in [ROADMAP.md](ROADMAP.md).
+
 - Apple Silicon only. There's no Intel or universal build, and no Windows/Linux support — the hardware acceleration path is VideoToolbox-specific.
 - Homebrew's FFmpeg is dynamically linked against libraries under a version-pinned `/opt/homebrew/Cellar/ffmpeg/<version>/` path, so a packaged app built with those binaries only runs on a Mac with that same FFmpeg version installed. A static FFmpeg build would be needed for true standalone distribution. See [The packaged app is not self-contained](#the-packaged-app-is-not-self-contained).
 - The test suite is smoke-level only. It checks that every source file parses and that the main process, preload bridge, and renderer agree on every IPC channel and exposed method — the wiring that breaks silently. It does **not** exercise transcoding; the conversion, combine, remux, and hardware-fallback paths were verified manually against real footage.
@@ -118,4 +120,6 @@ For distribution to people who don't have Homebrew, the app would need a statica
 
 [MIT](LICENSE) © Felipe Slaughter-Quintero
 
-This project calls FFmpeg as an external binary but does not bundle or redistribute it. FFmpeg is licensed separately under the [LGPL-2.1+ / GPL-2+](https://ffmpeg.org/legal.html), depending on how it was built.
+This repository does not contain or redistribute FFmpeg — `bin/` is gitignored, and you supply the binaries yourself.
+
+Note that `npm run package-mac` is a different matter: it copies `bin/` into the `.app`, so a packaged build **does** embed whatever FFmpeg you gave it. Homebrew's build is configured `--enable-gpl` with `libx264` and `libx265`, so distributing such a build means distributing GPL-licensed FFmpeg and accepting those obligations. Building for yourself is unaffected. FFmpeg is licensed under the [LGPL-2.1+ / GPL-2+](https://ffmpeg.org/legal.html) depending on how it was configured; see [ROADMAP.md](ROADMAP.md#1-statically-linked-ffmpeg) for how this constrains distributable builds.
