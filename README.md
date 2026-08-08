@@ -73,7 +73,23 @@ npm run package-mac
 
 The packaged `.app` lands in `Easy-File-Converter-darwin-arm64/`. `bin/` is excluded from the ASAR archive (`--asar.unpackDir=bin`) so the FFmpeg binaries remain executable at runtime.
 
-For distribution outside your own machine, the app would also need to be code-signed and notarized by Apple.
+### The packaged app is not self-contained
+
+Homebrew's FFmpeg is dynamically linked against libraries at an absolute, version-pinned path — check yours with `otool -L bin/ffmpeg`:
+
+```
+/opt/homebrew/Cellar/ffmpeg/8.1/lib/libavcodec.62.dylib
+```
+
+So anyone running the `.app`, including you on a second Mac, needs Homebrew FFmpeg installed at that same path:
+
+```bash
+brew install ffmpeg
+```
+
+Because the path pins a version directory, a Homebrew upgrade that moves FFmpeg to a new version will break the bundled binaries even though FFmpeg is still installed. Re-copy `ffmpeg` and `ffprobe` into `bin/` and repackage when that happens.
+
+For distribution to people who don't have Homebrew, the app would need a statically linked FFmpeg build so it carries no external dependency, plus code signing and notarization by Apple.
 
 ## Architecture
 
@@ -95,7 +111,7 @@ For distribution outside your own machine, the app would also need to be code-si
 ## Known limitations
 
 - Apple Silicon only. There's no Intel or universal build, and no Windows/Linux support — the hardware acceleration path is VideoToolbox-specific.
-- Homebrew's FFmpeg is dynamically linked against libraries in `/opt/homebrew/Cellar/`, so a packaged app built with those binaries won't run on a Mac that doesn't have the matching FFmpeg installed. A static FFmpeg build would be needed for true standalone distribution.
+- Homebrew's FFmpeg is dynamically linked against libraries under a version-pinned `/opt/homebrew/Cellar/ffmpeg/<version>/` path, so a packaged app built with those binaries only runs on a Mac with that same FFmpeg version installed. A static FFmpeg build would be needed for true standalone distribution. See [The packaged app is not self-contained](#the-packaged-app-is-not-self-contained).
 - The test suite is smoke-level only. It checks that every source file parses and that the main process, preload bridge, and renderer agree on every IPC channel and exposed method — the wiring that breaks silently. It does **not** exercise transcoding; the conversion, combine, remux, and hardware-fallback paths were verified manually against real footage.
 
 ## License
